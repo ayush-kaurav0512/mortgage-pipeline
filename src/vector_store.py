@@ -33,22 +33,24 @@ from src.paths import loan_vectors_dir
 
 logger = logging.getLogger(__name__)
 
-EMBEDDING_MODEL = "all-MiniLM-L6-v2"
-
-# Per-chunk metadata keys we always populate. ChromaDB requires every
-# metadata value to be a primitive (str / int / float / bool); never
-# pass None or nested containers.
 _REQUIRED_META_KEYS = ("source_file", "doc_type", "entity_type", "page_number", "chunk_index")
 
 
 def _default_embedder():
-    """Build the real sentence-transformers embedder.
+    """Return ChromaDB's built-in ONNX embedder (all-MiniLM-L6-v2 via onnxruntime).
 
-    Wrapped in a function so the heavy `SentenceTransformer` import only
-    runs when a real embedder is actually needed (tests inject a fake).
+    No torch / sentence-transformers required — same model weights, ~10x
+    lower memory footprint. Tests can inject a fake via VectorStore(embedder=...).
     """
-    from sentence_transformers import SentenceTransformer
-    return SentenceTransformer(EMBEDDING_MODEL)
+    from chromadb.utils.embedding_functions import DefaultEmbeddingFunction
+
+    ef = DefaultEmbeddingFunction()
+
+    class _Adapter:
+        def encode(self, texts):
+            return ef(texts)
+
+    return _Adapter()
 
 
 def _to_list(embeddings):
