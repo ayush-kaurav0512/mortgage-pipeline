@@ -1,0 +1,37 @@
+{
+  "loan_id": "loan_001",
+  "evaluated_at": "2026-05-24T21:31:56.505267+00:00",
+  "overall_status": "HOLD",
+  "flags": [
+    {
+      "id": "RULE-001",
+      "name": "Income variance > 15%",
+      "severity": "HIGH",
+      "explanation": "Stated income on 1003 differs from pay stub by 19.57%. Threshold is 15%."
+    },
+    {
+      "id": "RULE-004",
+      "name": "DTI in caution zone",
+      "severity": "MEDIUM",
+      "explanation": "DTI of 47% is in the 43-50% caution zone. Near agency limits."
+    },
+    {
+      "id": "RULE-005",
+      "name": "LTV above 90%",
+      "severity": "MEDIUM",
+      "explanation": "LTV of 90.5% exceeds 90%. PMI required, elevated default risk."
+    },
+    {
+      "id": "RULE-007",
+      "name": "Credit score below 720",
+      "severity": "MEDIUM",
+      "explanation": "Credit score 718 is below the 720 preferred threshold."
+    },
+    {
+      "id": "RULE-009",
+      "name": "Monthly payment to income ratio",
+      "severity": "LOW",
+      "explanation": "Monthly payment is 42.0% of verified income. Above 35% guideline."
+    }
+  ]
+}

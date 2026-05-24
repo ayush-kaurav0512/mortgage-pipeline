@@ -1,0 +1,2057 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mortgage Intelligence Pipeline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0a1628;
+    --navy-2: #122036;
+    --bg: #f4f6fa;
+    --card: #ffffff;
+    --border: #e2e8f0;
+    --text: #0f172a;
+    --muted: #64748b;
+    --accent: #2563eb;
+    --accent-dark: #1d4ed8;
+    --green: #10b981;
+    --green-soft: #d1fae5;
+    --green-dark: #065f46;
+    --amber: #f59e0b;
+    --amber-soft: #fef3c7;
+    --amber-dark: #92400e;
+    --red: #dc2626;
+    --red-soft: #fee2e2;
+    --red-dark: #991b1b;
+    --gray: #6b7280;
+    --gray-soft: #f1f5f9;
+    --purple: #7c3aed;
+    --purple-soft: #ede9fe;
+    --purple-dark: #5b21b6;
+    --teal: #0d9488;
+    --teal-soft: #ccfbf1;
+    --teal-dark: #134e4a;
+    --blue-soft: #dbeafe;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- header ---------- */
+  header.app-header {
+    background: linear-gradient(180deg, #0a1628 0%, #0c1a30 100%);
+    color: #fff;
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--navy-2);
+    box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 6px 16px rgba(10,22,40,0.06);
+  }
+  .app-header .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .app-header .mark {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    flex-shrink: 0;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.18) inset, 0 4px 10px rgba(29,78,216,0.35);
+  }
+  .app-header .mark svg { display: block; }
+  .app-header h1 {
+    font-size: 17px;
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .app-header h1 .accent { color: #93c5fd; font-weight: 500; }
+  .api-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #cbd5e1;
+  }
+  .status-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--gray);
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.04);
+    transition: background-color 0.2s;
+  }
+  .status-dot.ok    { background: var(--green); box-shadow: 0 0 0 3px rgba(16,185,129,0.18); }
+  .status-dot.down  { background: var(--red);   box-shadow: 0 0 0 3px rgba(220,38,38,0.18); }
+
+  /* ---------- unmatched docs banner ---------- */
+  .warn-banner {
+    max-width: 1280px;
+    margin: 16px auto 0;
+    padding: 0 32px;
+  }
+  .warn-banner-inner {
+    background: var(--amber-soft);
+    border: 1px solid #fcd34d;
+    color: var(--amber-dark);
+    border-radius: 10px;
+    padding: 12px 16px;
+  }
+  .warn-summary {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+  }
+  .warn-summary .icon { font-size: 16px; }
+  .warn-summary .toggle {
+    margin-left: auto;
+    background: none;
+    border: 1px solid #d97706;
+    color: var(--amber-dark);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .warn-summary .toggle:hover { background: rgba(217,119,6,0.08); }
+  .warn-body {
+    margin-top: 12px;
+    border-top: 1px solid rgba(217,119,6,0.25);
+    padding-top: 10px;
+  }
+  .warn-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 6px 0;
+    font-size: 13px;
+  }
+  .warn-row + .warn-row { border-top: 1px dashed rgba(217,119,6,0.2); }
+  .warn-row select {
+    font-family: inherit;
+    font-size: 12px;
+    padding: 4px 6px;
+    border: 1px solid #d97706;
+    border-radius: 6px;
+    background: white;
+    color: var(--text);
+  }
+  .warn-row button {
+    background: var(--amber-dark);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .warn-row button:hover:not(:disabled) { background: #78350f; }
+  .warn-row button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ---------- main grid ---------- */
+  main.app-main {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 24px 32px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+  @media (max-width: 980px) {
+    main.app-main { grid-template-columns: 1fr; }
+  }
+  .col-stack { display: flex; flex-direction: column; gap: 16px; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 1px 0 rgba(255,255,255,0.6) inset;
+  }
+  .card-title {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin: 0 0 12px;
+  }
+
+  /* ---------- loan selector ---------- */
+  .loan-selector-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .loan-selector-row label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin: 0;
+  }
+  .loan-selector-row select {
+    flex: 1;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: white;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .loan-selector-row select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+  }
+
+  /* ---------- upload zone ---------- */
+  .dropzone {
+    border: 2px dashed #cbd5e1;
+    border-radius: 10px;
+    padding: 32px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    background: #fafbfd;
+  }
+  .dropzone:hover, .dropzone.dragover {
+    border-color: var(--accent);
+    background: #eff6ff;
+  }
+  .dropzone .icon {
+    color: #94a3b8;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: center;
+    transition: color 0.15s;
+  }
+  .dropzone:hover .icon, .dropzone.dragover .icon { color: var(--accent); }
+  .dropzone p { margin: 0; color: var(--muted); font-size: 14px; }
+  .dropzone .hint { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+
+  .file-list {
+    list-style: none;
+    padding: 0;
+    margin: 12px 0 0;
+    font-size: 13px;
+    color: var(--text);
+  }
+  .file-list li {
+    padding: 6px 10px;
+    background: var(--gray-soft);
+    border-radius: 6px;
+    margin-bottom: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .file-list .remove {
+    background: none; border: none; cursor: pointer;
+    color: var(--muted); padding: 0 4px;
+    font-size: 16px; line-height: 1;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    background: var(--accent);
+    color: white;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    width: 100%;
+  }
+  .btn:hover:not(:disabled) { background: var(--accent-dark); }
+  .btn:disabled {
+    background: #cbd5e1;
+    cursor: not-allowed;
+  }
+  .btn.btn-secondary {
+    background: white;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn.btn-secondary:hover:not(:disabled) { background: var(--gray-soft); }
+  .btn.btn-sm {
+    padding: 6px 12px;
+    font-size: 12px;
+    width: auto;
+  }
+  .btn-row { margin-top: 16px; }
+
+  /* status / errors */
+  .status-msg {
+    margin-top: 16px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    display: none;
+    align-items: center;
+    gap: 10px;
+  }
+  .status-msg.show { display: flex; }
+  .status-msg.info  { background: #eff6ff; color: #1d4ed8; }
+  .status-msg.error { background: var(--red-soft); color: var(--red-dark); }
+  .spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(29,78,216,0.25);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ---------- results panel ---------- */
+  .results-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 360px;
+    color: var(--muted);
+    font-size: 14px;
+    text-align: center;
+  }
+  .results-empty .icon {
+    color: #cbd5e1;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .banner {
+    border-radius: 10px;
+    padding: 18px 24px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: 1px solid;
+  }
+  .banner .lbl   { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.85; }
+  .banner .stat  { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+  .banner .meta  { font-size: 13px; opacity: 0.85; }
+  .banner.hold   { background: var(--red-soft);   border-color: #fca5a5; color: var(--red-dark); }
+  .banner.review { background: var(--amber-soft); border-color: #fcd34d; color: var(--amber-dark); }
+  .banner.clear  { background: var(--green-soft); border-color: #6ee7b7; color: var(--green-dark); }
+
+  /* summary cards */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 1180px) { .summary-grid { grid-template-columns: repeat(2, 1fr); } }
+  .summary-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+    transition: transform 0.12s, box-shadow 0.12s;
+  }
+  .summary-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(15,23,42,0.06);
+  }
+  .summary-card .lbl {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .summary-card .val {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+  .summary-card .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  /* flags */
+  .flag-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left-width: 4px;
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+  }
+  .flag-card.high   { border-left-color: var(--red); }
+  .flag-card.medium { border-left-color: var(--amber); }
+  .flag-card.low    { border-left-color: var(--gray); }
+  .flag-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+  .flag-name { font-weight: 600; font-size: 14px; }
+  .flag-id   { font-size: 12px; color: var(--muted); font-family: 'SF Mono', 'Menlo', monospace; }
+  .flag-text { font-size: 13px; color: var(--text); margin: 0; }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .badge.high   { background: var(--red-soft);   color: var(--red-dark); }
+  .badge.medium { background: var(--amber-soft); color: var(--amber-dark); }
+  .badge.low    { background: var(--gray-soft);  color: var(--gray); }
+
+  .empty-flags {
+    background: var(--green-soft);
+    color: var(--green-dark);
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+  }
+
+  /* fields accordion */
+  details.fields {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0;
+    margin-top: 16px;
+  }
+  details.fields > summary {
+    padding: 16px 20px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  details.fields > summary::-webkit-details-marker { display: none; }
+  details.fields > summary::after {
+    content: '▾';
+    color: var(--muted);
+    font-size: 12px;
+    transition: transform 0.15s;
+  }
+  details.fields[open] > summary::after { transform: rotate(180deg); }
+  details.fields .summary-meta { font-size: 12px; color: var(--muted); font-weight: 500; }
+  details.fields .body {
+    border-top: 1px solid var(--border);
+    padding: 8px 0;
+  }
+  .field-row {
+    padding: 10px 20px;
+    display: grid;
+    grid-template-columns: 220px 1fr 140px;
+    gap: 16px;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .field-row:last-child { border-bottom: none; }
+  .field-label { font-size: 13px; color: var(--muted); font-weight: 500; }
+  .field-value { font-size: 13px; color: var(--text); font-weight: 500; word-break: break-word; }
+  .conf-track {
+    height: 6px;
+    background: var(--gray-soft);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+  }
+  .conf-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.2s;
+  }
+  .conf-fill.high   { background: var(--green); }
+  .conf-fill.medium { background: var(--amber); }
+  .conf-fill.low    { background: var(--red); }
+  .conf-fill.na     { background: #cbd5e1; }
+  .conf-cell .label {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+    display: block;
+  }
+
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin: 16px 4px 10px;
+  }
+
+  /* ---------- Phase 2A — right column panels ---------- */
+
+  /* loading skeleton */
+  .skeleton {
+    background: linear-gradient(90deg, #eef2f6 25%, #f7fafc 50%, #eef2f6 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s ease-in-out infinite;
+    border-radius: 6px;
+    height: 12px;
+    margin: 8px 0;
+  }
+  @keyframes shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  .panel-error {
+    background: var(--red-soft);
+    color: var(--red-dark);
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+  }
+  .panel-empty {
+    background: var(--gray-soft);
+    color: var(--muted);
+    padding: 14px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    text-align: center;
+  }
+
+  /* Document inventory */
+  .docs-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+  .docs-table th {
+    text-align: left;
+    font-weight: 600;
+    color: var(--muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .docs-table td {
+    padding: 8px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: top;
+  }
+  .docs-table tr:last-child td { border-bottom: none; }
+  .docs-table .filename {
+    font-weight: 500;
+    word-break: break-all;
+    max-width: 160px;
+  }
+  .docs-table .doc-time {
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .status-pill, .method-pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .status-pill.processed   { background: var(--green-soft); color: var(--green-dark); }
+  .status-pill.indexed     { background: var(--green-soft); color: var(--green-dark); }
+  .status-pill.indexing    { background: var(--amber-soft); color: var(--amber-dark); }
+  .status-pill.classifying { background: var(--amber-soft); color: var(--amber-dark); }
+  .status-pill.extracting  { background: var(--amber-soft); color: var(--amber-dark); }
+  .status-pill.failed      { background: var(--red-soft);   color: var(--red-dark); }
+  .status-pill.detected    { background: var(--gray-soft);  color: var(--muted); }
+  .method-pill.pdfplumber         { background: var(--blue-soft);   color: var(--accent-dark); }
+  .method-pill.ocr                { background: var(--purple-soft); color: var(--purple-dark); }
+  .method-pill.structured_parser  { background: var(--teal-soft);   color: var(--teal-dark); }
+  .method-pill.unknown,
+  .method-pill\.empty             { background: var(--gray-soft);   color: var(--muted); }
+
+  /* Servicing summary */
+  .serv-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .serv-cell {
+    background: var(--gray-soft);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .serv-cell .lbl {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    margin-bottom: 2px;
+  }
+  .serv-cell .val { font-size: 15px; font-weight: 600; color: var(--text); }
+  .serv-cell .val.green { color: var(--green-dark); }
+  .serv-cell .val.amber { color: var(--amber-dark); }
+  .serv-cell .val.red   { color: var(--red-dark); }
+  .pay-history {
+    display: grid;
+    grid-template-columns: repeat(24, 1fr);
+    gap: 3px;
+    margin: 8px 0;
+  }
+  .pay-cell {
+    aspect-ratio: 1;
+    border-radius: 3px;
+    background: var(--gray-soft);
+  }
+  .pay-cell.ontime { background: var(--green); }
+  .pay-cell.late30 { background: var(--amber); }
+  .pay-cell.late60 { background: #f97316; }
+  .pay-cell.late90 { background: var(--red); }
+  .pay-cell.none   { background: #94a3b8; }
+  .pay-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+  .pay-legend .swatch {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+
+  /* Chat */
+  .chat-card { display: flex; flex-direction: column; min-height: 480px; }
+  .chat-banner {
+    background: var(--blue-soft);
+    color: var(--accent-dark);
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 10px;
+  }
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    background: #fafbfd;
+    min-height: 320px;
+    max-height: 420px;
+  }
+  .chat-empty { color: var(--muted); font-size: 13px; text-align: center; padding: 24px 0; }
+  .chat-msg { margin-bottom: 12px; display: flex; flex-direction: column; max-width: 88%; }
+  .chat-msg.user   { align-self: flex-end;  margin-left: auto; }
+  .chat-msg.system { align-self: flex-start; margin-right: auto; }
+  .chat-bubble {
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 13.5px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  .chat-msg.user .chat-bubble {
+    background: var(--accent);
+    color: white;
+    border-bottom-right-radius: 4px;
+  }
+  .chat-msg.system .chat-bubble {
+    background: var(--gray-soft);
+    color: var(--text);
+    border-bottom-left-radius: 4px;
+  }
+  .chat-confidence {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+    margin-left: 4px;
+  }
+  .confidence-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--gray);
+  }
+  .confidence-dot.grounded  { background: var(--green); }
+  .confidence-dot.partial   { background: var(--amber); }
+  .confidence-dot.not_found { background: var(--red); }
+
+  .citations { margin-top: 8px; padding-left: 4px; }
+  .citation {
+    border-left: 2px solid var(--accent);
+    padding: 4px 8px;
+    margin-top: 6px;
+    background: white;
+    border-radius: 4px;
+  }
+  .citation-meta {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 500;
+    display: block;
+    margin-bottom: 2px;
+  }
+  .citation-excerpt {
+    font-size: 12px;
+    color: var(--text);
+    font-style: italic;
+    margin: 0;
+  }
+  .chat-input-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .chat-input-row input {
+    flex: 1;
+    font-family: inherit;
+    font-size: 13px;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: white;
+  }
+  .chat-input-row input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+  }
+  .chat-input-row button {
+    width: auto;
+    padding: 9px 16px;
+  }
+
+  /* Pool progress */
+  .pool-bar {
+    width: 100%;
+    height: 8px;
+    background: var(--gray-soft);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 8px 0;
+  }
+  .pool-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--green));
+    border-radius: 4px;
+    transition: width 0.3s;
+  }
+  .pool-status-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 10px 0;
+  }
+  .pool-pill {
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .pool-pill.awaiting_docs { background: var(--gray-soft);   color: var(--gray); }
+  .pool-pill.processing    { background: var(--blue-soft);   color: var(--accent-dark); }
+  .pool-pill.complete      { background: var(--green-soft);  color: var(--green-dark); }
+  .pool-pill.flagged       { background: var(--red-soft);    color: var(--red-dark); }
+  .pool-pill.error         { background: #fee2e2; color: #7f1d1d; border: 1px solid #fca5a5; }
+  .pool-loans {
+    margin-top: 10px;
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+  }
+  .pool-loan-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 4px;
+    font-size: 13px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .pool-loan-row:hover { background: var(--gray-soft); }
+  .pool-loan-id { font-weight: 500; }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="brand">
+    <span class="mark" aria-hidden="true">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12l4-4 4 4 4-6 6 8"/>
+        <path d="M3 20h18"/>
+      </svg>
+    </span>
+    <h1>Mortgage Intelligence <span class="accent">Pipeline</span></h1>
+  </div>
+  <div class="api-status" title="API status">
+    <span class="status-dot" id="statusDot"></span>
+    <span id="statusText">Checking…</span>
+  </div>
+</header>
+
+<!-- Unmatched documents banner (above main, hidden when empty) -->
+<div class="warn-banner" id="unmatchedBanner" hidden>
+  <div class="warn-banner-inner">
+    <div class="warn-summary">
+      <span class="icon" aria-hidden="true">⚠</span>
+      <strong><span id="unmatchedCount">0</span> unmatched document(s)</strong> need assignment
+      <button class="toggle" id="unmatchedToggle">Show ▾</button>
+    </div>
+    <div class="warn-body" id="unmatchedBody" hidden></div>
+  </div>
+</div>
+
+<main class="app-main">
+
+  <!-- LEFT COLUMN: loan selector + upload + existing results -->
+  <section class="col-stack">
+
+    <!-- Loan selector (NEW) -->
+    <div class="card">
+      <div class="loan-selector-row">
+        <label for="loanSelector">Current Loan</label>
+        <select id="loanSelector">
+          <option value="">— select a loan —</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Upload zone (existing) -->
+    <div class="card">
+      <h2 class="card-title">Upload Loan Package</h2>
+
+      <div class="dropzone" id="dropzone" tabindex="0" role="button"
+           aria-label="Drop PDFs or click to browse">
+        <div class="icon" aria-hidden="true">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+        </div>
+        <p>Drag PDFs here, or <strong>click to browse</strong></p>
+        <p class="hint">Accepts loan_NNN_*.pdf or a .zip of PDFs</p>
+        <input type="file" id="fileInput" multiple accept=".pdf,.zip" hidden>
+      </div>
+
+      <ul class="file-list" id="fileList"></ul>
+
+      <div class="btn-row">
+        <button class="btn" id="analyzeBtn" disabled>Analyze Loan Package</button>
+      </div>
+
+      <div class="status-msg" id="statusMsg"></div>
+    </div>
+
+    <!-- Results panel (existing — scorecard + flag list, untouched) -->
+    <div id="resultsArea">
+      <div class="card results-empty" id="resultsEmpty">
+        <div>
+          <div class="icon" aria-hidden="true">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <line x1="9" y1="9" x2="9" y2="17"/>
+              <line x1="13" y1="13" x2="13" y2="17"/>
+              <line x1="17" y1="7" x2="17" y2="17"/>
+            </svg>
+          </div>
+          <div>Upload a loan package or pick one above to view its scorecard.</div>
+        </div>
+      </div>
+
+      <div id="resultsContent" hidden>
+        <div class="banner" id="banner">
+          <div>
+            <div class="lbl">Overall Status</div>
+            <div class="stat" id="bannerStatus">—</div>
+          </div>
+          <div class="meta" id="bannerMeta"></div>
+        </div>
+
+        <div class="section-title">Loan Summary</div>
+        <div class="summary-grid" id="summaryGrid"></div>
+
+        <div class="section-title">Flags</div>
+        <div id="flagsArea"></div>
+
+        <details class="fields" id="fieldsAccordion">
+          <summary>
+            <span>Extracted Fields</span>
+            <span class="summary-meta" id="confSummaryMeta"></span>
+          </summary>
+          <div class="body" id="fieldsBody"></div>
+        </details>
+
+        <div class="btn-row">
+          <button class="btn btn-secondary" id="exportBtn">Export Report</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RIGHT COLUMN: 4 new Phase 2A panels -->
+  <section class="col-stack">
+
+    <!-- Panel 1: Document Inventory -->
+    <div class="card" id="docsCard">
+      <h2 class="card-title">Document Inventory</h2>
+      <div id="docsBody">
+        <div class="panel-empty">Pick a loan above to see its document inventory.</div>
+      </div>
+      <div class="btn-row" id="addDocRow" hidden>
+        <button class="btn btn-secondary" id="addDocBtn">Add Document</button>
+        <input type="file" id="addDocInput" accept=".pdf" hidden>
+      </div>
+    </div>
+
+    <!-- Panel 2: Servicing Summary -->
+    <div class="card" id="servicingCard">
+      <h2 class="card-title">Servicing Summary</h2>
+      <div id="servicingBody">
+        <div class="panel-empty">Pick a loan above to see its servicing data.</div>
+      </div>
+    </div>
+
+    <!-- Panel 3: Analyst Chat -->
+    <div class="card chat-card" id="chatCard">
+      <h2 class="card-title">Analyst Chat</h2>
+      <div id="chatBanner" class="chat-banner" hidden></div>
+      <div class="chat-messages" id="chatMessages">
+        <div class="chat-empty">Ask a question about the selected loan.</div>
+      </div>
+      <div class="chat-input-row">
+        <input type="text" id="chatInput" placeholder="Ask a question…" disabled>
+        <button class="btn" id="chatSendBtn" disabled>Send</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary btn-sm" id="chatClearBtn" disabled>Clear History</button>
+      </div>
+    </div>
+
+    <!-- Panel 4: Pool Progress (hidden until a pool is active) -->
+    <div class="card" id="poolCard" hidden>
+      <h2 class="card-title">Pool Progress</h2>
+      <div id="poolBody"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+'use strict';
+
+const API_BASE = '';   // same-origin; the API serves this page via GET /
+
+// ---------- shared state ----------
+let currentLoanId = null;
+let currentScorecard = null;
+let activePoolId = null;          // set by checkActivePool() or after creating a pool
+
+// ---------- API connectivity dot ----------
+
+const statusDot  = document.getElementById('statusDot');
+const statusText = document.getElementById('statusText');
+
+async function pingApi() {
+  try {
+    const r = await fetch(`${API_BASE}/health`, { method: 'GET' });
+    if (!r.ok) throw new Error('bad status');
+    const j = await r.json();
+    statusDot.classList.remove('down'); statusDot.classList.add('ok');
+    statusText.textContent = `API connected (v${j.version || '—'})`;
+  } catch (_) {
+    statusDot.classList.remove('ok'); statusDot.classList.add('down');
+    statusText.textContent = 'API offline';
+  }
+}
+pingApi();
+setInterval(pingApi, 5000);
+
+// ---------- file handling (existing upload zone) ----------
+
+const dropzone   = document.getElementById('dropzone');
+const fileInput  = document.getElementById('fileInput');
+const fileList   = document.getElementById('fileList');
+const analyzeBtn = document.getElementById('analyzeBtn');
+
+let selected = [];
+
+function refreshFileList() {
+  fileList.innerHTML = '';
+  selected.forEach((f, idx) => {
+    const li = document.createElement('li');
+    li.innerHTML = `<span>${escapeHtml(f.name)} <span style="color:#94a3b8;font-size:11px">(${formatBytes(f.size)})</span></span>`;
+    const btn = document.createElement('button');
+    btn.className = 'remove';
+    btn.textContent = '×';
+    btn.title = 'Remove';
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      selected.splice(idx, 1);
+      refreshFileList();
+    });
+    li.appendChild(btn);
+    fileList.appendChild(li);
+  });
+  analyzeBtn.disabled = selected.length === 0;
+}
+
+function addFiles(fileList) {
+  for (const f of fileList) {
+    const lower = f.name.toLowerCase();
+    if (lower.endsWith('.pdf') || lower.endsWith('.zip')) selected.push(f);
+  }
+  refreshFileList();
+}
+
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('keydown', e => {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
+});
+dropzone.addEventListener('dragover',  e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropzone.classList.remove('dragover');
+  addFiles(e.dataTransfer.files);
+});
+fileInput.addEventListener('change', e => addFiles(e.target.files));
+
+// ---------- status messages ----------
+
+const statusMsg = document.getElementById('statusMsg');
+
+function showStatus(text, kind = 'info', spinning = true) {
+  statusMsg.classList.add('show');
+  statusMsg.classList.remove('info', 'error');
+  statusMsg.classList.add(kind);
+  statusMsg.innerHTML = '';
+  if (spinning && kind === 'info') {
+    const sp = document.createElement('div'); sp.className = 'spinner';
+    statusMsg.appendChild(sp);
+  }
+  const span = document.createElement('span');
+  span.textContent = text;
+  statusMsg.appendChild(span);
+}
+function hideStatus() { statusMsg.classList.remove('show'); }
+
+// ---------- pipeline run (existing /upload flow) ----------
+
+analyzeBtn.addEventListener('click', async () => {
+  if (selected.length === 0) return;
+  analyzeBtn.disabled = true;
+
+  try {
+    showStatus('Uploading & analyzing documents…');
+    const fd = new FormData();
+    selected.forEach(f => fd.append('files', f));
+
+    const upRes = await fetch(`${API_BASE}/upload`, { method: 'POST', body: fd });
+    if (!upRes.ok) {
+      const detail = await upRes.json().catch(() => ({}));
+      throw new Error(detail.detail || `Upload failed (HTTP ${upRes.status})`);
+    }
+    const upJson = await upRes.json();
+
+    renderResults(upJson, upJson);
+    hideStatus();
+    // After upload, refresh the loan list and auto-select the new loan
+    // so all the right-column panels populate.
+    await loadLoans();
+    if (upJson.loan_id) await selectLoan(upJson.loan_id, /*skipScorecard=*/true);
+    checkUnmatched();
+  } catch (err) {
+    const msg = (err && err.message) || String(err);
+    if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+      showStatus(`Could not reach the API. Please try again.`, 'error', false);
+    } else {
+      showStatus(msg, 'error', false);
+    }
+  } finally {
+    analyzeBtn.disabled = selected.length === 0;
+  }
+});
+
+// ---------- rendering: scorecard + flags (EXISTING, unchanged behavior) ----------
+
+let lastScorecard = null;
+
+function renderResults(sc, uploadInfo) {
+  lastScorecard = sc;
+  currentScorecard = sc;
+
+  document.getElementById('resultsEmpty').hidden = true;
+  document.getElementById('resultsContent').hidden = false;
+
+  // ---- banner ----
+  const banner = document.getElementById('banner');
+  const bStatus = document.getElementById('bannerStatus');
+  const bMeta   = document.getElementById('bannerMeta');
+  banner.classList.remove('hold', 'review', 'clear');
+  const status = (sc.overall_status || '').toUpperCase();
+  banner.classList.add(status === 'HOLD' ? 'hold' : status === 'REVIEW' ? 'review' : 'clear');
+  bStatus.textContent = status || '—';
+  const flagCount = (sc.flags || []).length;
+  const procTime = (uploadInfo && uploadInfo.processing_time_seconds != null)
+    ? `${uploadInfo.processing_time_seconds}s` : '—';
+  bMeta.innerHTML = `
+    <div><strong>${escapeHtml(sc.loan_id || '—')}</strong></div>
+    <div>${flagCount} flag${flagCount === 1 ? '' : 's'} · ${procTime} · ${formatTimestamp(sc.processed_at)}</div>
+  `;
+
+  // ---- summary cards ----
+  const ls = sc.loan_summary || {};
+  const b  = sc.borrower || {};
+  const cards = [
+    { label: 'Borrower',        value: b.name || '—' },
+    { label: 'Loan Amount',     value: fmtCurrency(ls.amount) },
+    { label: 'Interest Rate',   value: fmtRate(ls.interest_rate) },
+    { label: 'Monthly Payment', value: fmtCurrency(ls.monthly_payment) },
+    { label: 'LTV',             value: fmtPercent(ls.ltv) },
+    { label: 'DTI',             value: fmtPercent(ls.dti) },
+    { label: 'Credit Score',    value: b.credit_score != null ? String(b.credit_score) : '—' },
+    { label: 'Purchase Price',  value: fmtCurrency(ls.purchase_price) },
+    { label: 'Income Variance', value: ls.income_variance_pct != null ? fmtPercent(ls.income_variance_pct) : '—' },
+  ];
+  const grid = document.getElementById('summaryGrid');
+  grid.innerHTML = '';
+  cards.forEach(c => {
+    const div = document.createElement('div');
+    div.className = 'summary-card';
+    div.innerHTML = `<div class="lbl">${escapeHtml(c.label)}</div><div class="val">${escapeHtml(c.value)}</div>`;
+    grid.appendChild(div);
+  });
+
+  // ---- flags ----
+  const flagsArea = document.getElementById('flagsArea');
+  flagsArea.innerHTML = '';
+  if (!flagCount) {
+    const ok = document.createElement('div');
+    ok.className = 'empty-flags';
+    ok.textContent = 'No flags raised. All checks passed.';
+    flagsArea.appendChild(ok);
+  } else {
+    const sortOrder = { HIGH: 0, MEDIUM: 1, LOW: 2 };
+    const sorted = [...sc.flags].sort((a, b) =>
+      (sortOrder[a.severity] ?? 9) - (sortOrder[b.severity] ?? 9) || a.id.localeCompare(b.id)
+    );
+    sorted.forEach(f => {
+      const sev = (f.severity || 'LOW').toLowerCase();
+      const card = document.createElement('div');
+      card.className = `flag-card ${sev}`;
+      card.innerHTML = `
+        <div class="flag-head">
+          <span class="badge ${sev}">${escapeHtml(f.severity || 'LOW')}</span>
+          <span class="flag-id">${escapeHtml(f.id || '')}</span>
+          <span class="flag-name">${escapeHtml(f.name || '')}</span>
+        </div>
+        <p class="flag-text">${escapeHtml(f.explanation || '')}</p>
+      `;
+      flagsArea.appendChild(card);
+    });
+  }
+
+  // ---- extracted fields accordion ----
+  renderFields(sc);
+}
+
+// We don't get per-field numeric confidences from the scorecard endpoint,
+// only confidence_summary.{avg_confidence, low_confidence_fields}. So bar
+// width is uniform per field and color comes from whether the field's
+// dotted path appears in low_confidence_fields.
+const FIELD_DEFS = [
+  { path: 'borrower.name',                    label: 'Borrower Name',          formatter: v => v ?? '—' },
+  { path: 'borrower.credit_score',            label: 'Credit Score',           formatter: v => v ?? '—' },
+  { path: 'income.stated_on_application',     label: 'Income (Stated)',        formatter: fmtCurrency },
+  { path: 'income.verified_from_paystub',     label: 'Income (Verified)',      formatter: fmtCurrency },
+  { path: 'loan.amount',                      label: 'Loan Amount',            formatter: fmtCurrency },
+  { path: 'loan.interest_rate',               label: 'Interest Rate',          formatter: fmtRate },
+  { path: 'loan.monthly_payment',             label: 'Monthly Payment',        formatter: fmtCurrency },
+  { path: 'loan.ltv',                         label: 'LTV',                    formatter: fmtPercent },
+  { path: 'loan.dti',                         label: 'DTI',                    formatter: fmtPercent },
+  { path: 'property.address',                 label: 'Property Address',       formatter: v => v ?? '—' },
+  { path: 'property.purchase_price',          label: 'Purchase Price',         formatter: fmtCurrency },
+  { path: 'closing.closing_costs',            label: 'Closing Costs',          formatter: fmtCurrency },
+];
+
+function renderFields(sc) {
+  const ls    = sc.loan_summary || {};
+  const b     = sc.borrower || {};
+  const cs    = sc.confidence_summary || {};
+  const lowSet = new Set(cs.low_confidence_fields || []);
+  const avg   = typeof cs.avg_confidence === 'number' ? cs.avg_confidence : null;
+
+  const sources = {
+    'borrower.name':                b.name,
+    'borrower.credit_score':        b.credit_score,
+    'income.stated_on_application': ls.income_stated_on_application,
+    'income.verified_from_paystub': ls.income_verified_from_paystub,
+    'loan.amount':                  ls.amount,
+    'loan.interest_rate':           ls.interest_rate,
+    'loan.monthly_payment':         ls.monthly_payment,
+    'loan.ltv':                     ls.ltv,
+    'loan.dti':                     ls.dti,
+    'property.address':             ls.property_address,
+    'property.purchase_price':      ls.purchase_price,
+    'closing.closing_costs':        ls.closing_costs,
+  };
+
+  const meta = document.getElementById('confSummaryMeta');
+  meta.textContent = avg != null
+    ? `avg confidence ${(avg * 100).toFixed(0)}% · ${lowSet.size} flagged`
+    : `${lowSet.size} flagged`;
+
+  const body = document.getElementById('fieldsBody');
+  body.innerHTML = '';
+
+  FIELD_DEFS.forEach(def => {
+    const value = sources[def.path];
+    const isLow = lowSet.has(def.path);
+    let bucket;
+    if (value == null)        bucket = 'na';
+    else if (isLow)           bucket = 'low';
+    else if (avg != null && avg < 0.85) bucket = 'medium';
+    else                      bucket = 'high';
+
+    const widths = { high: '95%', medium: '82%', low: '55%', na: '20%' };
+    const labels = { high: '≥ 0.85', medium: '0.75–0.84', low: '< 0.75', na: 'no data' };
+
+    const row = document.createElement('div');
+    row.className = 'field-row';
+    row.innerHTML = `
+      <div class="field-label">${escapeHtml(def.label)}</div>
+      <div class="field-value">${escapeHtml(def.formatter(value))}</div>
+      <div class="conf-cell">
+        <div class="conf-track"><div class="conf-fill ${bucket}" style="width:${widths[bucket]}"></div></div>
+        <span class="label">confidence: ${labels[bucket]}</span>
+      </div>
+    `;
+    body.appendChild(row);
+  });
+}
+
+// ---------- export report (existing) ----------
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  if (!lastScorecard) return;
+  const txt = buildReportText(lastScorecard);
+  const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = `${lastScorecard.loan_id || 'loan'}_scorecard.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
+function buildReportText(sc) {
+  const ls = sc.loan_summary || {};
+  const b  = sc.borrower || {};
+  const cs = sc.confidence_summary || {};
+  const lines = [];
+  lines.push('LOAN SCORECARD');
+  lines.push('='.repeat(60));
+  lines.push(`Loan ID:        ${sc.loan_id}`);
+  lines.push(`Status:         ${sc.overall_status}`);
+  lines.push(`Processed:      ${sc.processed_at || '—'}`);
+  lines.push('');
+  lines.push('BORROWER');
+  lines.push('-'.repeat(60));
+  lines.push(`  Name:         ${b.name || '—'}`);
+  lines.push(`  Credit Score: ${b.credit_score ?? '—'}`);
+  lines.push('');
+  lines.push('LOAN');
+  lines.push('-'.repeat(60));
+  lines.push(`  Amount:        ${fmtCurrency(ls.amount)}`);
+  lines.push(`  Rate:          ${fmtRate(ls.interest_rate)}`);
+  lines.push(`  Monthly P&I:   ${fmtCurrency(ls.monthly_payment)}`);
+  lines.push(`  LTV:           ${fmtPercent(ls.ltv)}`);
+  lines.push(`  DTI:           ${fmtPercent(ls.dti)}`);
+  lines.push(`  Purchase:      ${fmtCurrency(ls.purchase_price)}`);
+  lines.push(`  Property:      ${ls.property_address || '—'}`);
+  lines.push(`  Closing Costs: ${fmtCurrency(ls.closing_costs)}`);
+  lines.push('');
+  lines.push('INCOME');
+  lines.push('-'.repeat(60));
+  lines.push(`  Stated:        ${fmtCurrency(ls.income_stated_on_application)}`);
+  lines.push(`  Verified:      ${fmtCurrency(ls.income_verified_from_paystub)}`);
+  lines.push(`  Variance:      ${ls.income_variance_pct != null ? fmtPercent(ls.income_variance_pct) : '—'}`);
+  lines.push('');
+  lines.push(`FLAGS (${(sc.flags || []).length})`);
+  lines.push('-'.repeat(60));
+  if (!sc.flags || !sc.flags.length) {
+    lines.push('  No flags raised.');
+  } else {
+    [...sc.flags]
+      .sort((a, b) => ({HIGH:0,MEDIUM:1,LOW:2}[a.severity] ?? 9) - ({HIGH:0,MEDIUM:1,LOW:2}[b.severity] ?? 9))
+      .forEach(f => {
+        lines.push(`  [${f.severity}] ${f.id} — ${f.name}`);
+        lines.push(`         ${f.explanation}`);
+      });
+  }
+  lines.push('');
+  lines.push('CONFIDENCE');
+  lines.push('-'.repeat(60));
+  lines.push(`  Avg confidence:       ${cs.avg_confidence != null ? cs.avg_confidence : '—'}`);
+  lines.push(`  Low-confidence:       ${(cs.low_confidence_fields || []).join(', ') || 'none'}`);
+  lines.push('');
+  return lines.join('\n');
+}
+
+// ============================================================
+//                     Phase 2A — new panels
+// ============================================================
+
+// ---------- loan selector ----------
+
+const loanSelectorEl = document.getElementById('loanSelector');
+
+async function loadLoans() {
+  try {
+    const r = await fetch(`${API_BASE}/loans`);
+    if (!r.ok) return;
+    const j = await r.json();
+    const ids = j.loans || [];
+    const previous = loanSelectorEl.value;
+    loanSelectorEl.innerHTML = '<option value="">— select a loan —</option>';
+    ids.forEach(lid => {
+      const opt = document.createElement('option');
+      opt.value = lid;
+      opt.textContent = lid;
+      loanSelectorEl.appendChild(opt);
+    });
+    if (previous && ids.includes(previous)) loanSelectorEl.value = previous;
+    else if (currentLoanId && ids.includes(currentLoanId)) loanSelectorEl.value = currentLoanId;
+  } catch (_) { /* swallow — banner / API dot will surface real network problems */ }
+}
+
+loanSelectorEl.addEventListener('change', async (e) => {
+  const lid = e.target.value;
+  if (!lid) return;
+  await selectLoan(lid);
+});
+
+/**
+ * Switch the dashboard to a different loan: fetch its scorecard, then
+ * refresh every right-column panel. Pass skipScorecard=true when the
+ * scorecard payload is already in hand (e.g. straight after /upload).
+ */
+async function selectLoan(loanId, { skipScorecard = false } = {}) {
+  currentLoanId = loanId;
+  loanSelectorEl.value = loanId;
+  const promises = [
+    refreshDocuments(),
+    refreshChatPanelState(),
+  ];
+  if (!skipScorecard) promises.push(refreshScorecard());
+  else                renderServicing(currentScorecard);
+  await Promise.allSettled(promises);
+  if (activePoolId) refreshPoolProgress();
+}
+
+async function refreshScorecard() {
+  if (!currentLoanId) return;
+  try {
+    const r = await fetch(`${API_BASE}/loan/${encodeURIComponent(currentLoanId)}/scorecard`);
+    if (!r.ok) {
+      // 404 -> loan exists in the list but hasn't been processed yet; clear the panels.
+      currentScorecard = null;
+      document.getElementById('resultsContent').hidden = true;
+      document.getElementById('resultsEmpty').hidden = false;
+      renderServicing(null);
+      return;
+    }
+    const sc = await r.json();
+    renderResults(sc, null);
+    renderServicing(sc);
+  } catch (err) {
+    showPanelError(document.getElementById('resultsArea'), `Could not load scorecard: ${err.message}`);
+  }
+}
+
+// ---------- Panel 1: Document Inventory ----------
+
+const docsBody = document.getElementById('docsBody');
+const addDocBtn = document.getElementById('addDocBtn');
+const addDocInput = document.getElementById('addDocInput');
+const addDocRow = document.getElementById('addDocRow');
+
+async function refreshDocuments() {
+  if (!currentLoanId) {
+    docsBody.innerHTML = `<div class="panel-empty">Pick a loan above to see its document inventory.</div>`;
+    addDocRow.hidden = true;
+    return;
+  }
+  renderDocsSkeleton();
+  try {
+    const r = await fetch(`${API_BASE}/loan/${encodeURIComponent(currentLoanId)}/documents`);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const j = await r.json();
+    renderDocuments(j.documents || []);
+  } catch (err) {
+    docsBody.innerHTML = `<div class="panel-error">Could not load documents: ${escapeHtml(err.message)}</div>`;
+  }
+  addDocRow.hidden = false;
+}
+
+function renderDocsSkeleton() {
+  docsBody.innerHTML = `
+    <div class="skeleton" style="width:90%"></div>
+    <div class="skeleton" style="width:70%"></div>
+    <div class="skeleton" style="width:80%"></div>
+  `;
+}
+
+function renderDocuments(docs) {
+  if (!docs.length) {
+    docsBody.innerHTML = `<div class="panel-empty">No documents indexed yet — upload files to begin.</div>`;
+    return;
+  }
+  const rows = docs.map(d => {
+    const status = String(d.status || 'detected').toLowerCase();
+    const method = String(d.method || 'unknown').toLowerCase();
+    return `
+      <tr>
+        <td class="filename">${escapeHtml(d.filename || '—')}</td>
+        <td>${escapeHtml(d.doc_type || '—')}</td>
+        <td><span class="status-pill ${escapeAttr(status)}">${escapeHtml(status)}</span></td>
+        <td>${method ? `<span class="method-pill ${escapeAttr(method)}">${escapeHtml(method)}</span>` : '—'}</td>
+        <td>${d.chunk_count ?? 0}</td>
+        <td class="doc-time">${formatTimestamp(d.processed_at)}</td>
+      </tr>
+    `;
+  }).join('');
+  docsBody.innerHTML = `
+    <table class="docs-table">
+      <thead><tr>
+        <th>Filename</th><th>Type</th><th>Status</th><th>Method</th><th>Chunks</th><th>Processed</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+addDocBtn.addEventListener('click', () => {
+  if (!currentLoanId) {
+    alert('Pick a loan above first.');
+    return;
+  }
+  addDocInput.click();
+});
+addDocInput.addEventListener('change', async (e) => {
+  const file = e.target.files && e.target.files[0];
+  if (!file || !currentLoanId) return;
+  addDocBtn.disabled = true;
+  addDocBtn.textContent = 'Uploading…';
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    const r = await fetch(`${API_BASE}/loan/${encodeURIComponent(currentLoanId)}/document`, {
+      method: 'POST', body: fd,
+    });
+    if (!r.ok) {
+      const d = await r.json().catch(() => ({}));
+      throw new Error(d.detail || `HTTP ${r.status}`);
+    }
+    await refreshDocuments();
+    await refreshScorecard();
+    await refreshChatPanelState();
+  } catch (err) {
+    alert(`Add document failed: ${err.message}`);
+  } finally {
+    addDocBtn.disabled = false;
+    addDocBtn.textContent = 'Add Document';
+    addDocInput.value = '';
+  }
+});
+
+// ---------- Panel 2: Servicing Summary ----------
+
+const servicingBody = document.getElementById('servicingBody');
+
+function renderServicing(sc) {
+  if (!currentLoanId) {
+    servicingBody.innerHTML = `<div class="panel-empty">Pick a loan above to see its servicing data.</div>`;
+    return;
+  }
+  const s = sc && sc.servicing;
+  if (!s) {
+    servicingBody.innerHTML = `
+      <div class="panel-empty">No servicing tape uploaded for this loan.</div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" id="uploadTapeBtn">Upload Tape</button>
+        <input type="file" id="uploadTapeInput" accept=".csv,.xlsx,.xls" hidden>
+      </div>
+    `;
+    document.getElementById('uploadTapeBtn').addEventListener('click', () => {
+      document.getElementById('uploadTapeInput').click();
+    });
+    document.getElementById('uploadTapeInput').addEventListener('change', uploadTapeHandler);
+    return;
+  }
+
+  const dpd = s.days_delinquent ?? 0;
+  const dpdClass = dpd >= 30 ? 'red' : dpd >= 1 ? 'amber' : 'green';
+
+  servicingBody.innerHTML = `
+    <div class="serv-grid">
+      <div class="serv-cell">
+        <div class="lbl">Current UPB</div>
+        <div class="val">${escapeHtml(fmtCurrency(s.current_upb))}</div>
+      </div>
+      <div class="serv-cell">
+        <div class="lbl">Days Delinquent</div>
+        <div class="val ${dpdClass}">${dpd}</div>
+      </div>
+      <div class="serv-cell">
+        <div class="lbl">Modification</div>
+        <div class="val">${s.modification_flag ? 'Yes' : 'No'}</div>
+      </div>
+      <div class="serv-cell">
+        <div class="lbl">Escrow Balance</div>
+        <div class="val">${escapeHtml(fmtCurrency(s.escrow_balance))}</div>
+      </div>
+    </div>
+    <div class="section-title" style="margin: 8px 0">Payment History (24 mo)</div>
+    ${renderPaymentHistory(s.payment_history_parsed)}
+  `;
+}
+
+function renderPaymentHistory(parsed) {
+  // We don't store the per-month string in servicing summary — only the
+  // bucket counts. Synthesize a 24-cell visual that preserves the
+  // counts: worst events go to the most recent (right-side) months.
+  const total = 24;
+  const onTime = (parsed && parsed.months_on_time)        || 0;
+  const late30 = (parsed && parsed.months_30_late)        || 0;
+  const late60 = (parsed && parsed.months_60_late)        || 0;
+  const late90 = (parsed && parsed.months_90_plus_late)   || 0;
+  const none   = (parsed && parsed.months_no_payment)     || 0;
+
+  // Build left-to-right: oldest-on-time first, then the bad months at the right.
+  // If counts exceed 24, clip from the oldest side.
+  let cells = [];
+  for (let i = 0; i < onTime; i++) cells.push('ontime');
+  for (let i = 0; i < late30; i++) cells.push('late30');
+  for (let i = 0; i < late60; i++) cells.push('late60');
+  for (let i = 0; i < late90; i++) cells.push('late90');
+  for (let i = 0; i < none;   i++) cells.push('none');
+  if (cells.length > total) cells = cells.slice(cells.length - total);
+  while (cells.length < total) cells.unshift('none');  // pad with neutral
+
+  const squares = cells.map(c => `<div class="pay-cell ${c}" title="${c}"></div>`).join('');
+  return `
+    <div class="pay-history">${squares}</div>
+    <div class="pay-legend">
+      <span><span class="swatch" style="background:var(--green)"></span>on-time</span>
+      <span><span class="swatch" style="background:var(--amber)"></span>30 late</span>
+      <span><span class="swatch" style="background:#f97316"></span>60 late</span>
+      <span><span class="swatch" style="background:var(--red)"></span>90+ late</span>
+      <span><span class="swatch" style="background:#94a3b8"></span>no data</span>
+    </div>
+  `;
+}
+
+async function uploadTapeHandler(e) {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  const fd = new FormData();
+  fd.append('tape', file);
+  // Let the API auto-generate a pool_id.
+  try {
+    const r = await fetch(`${API_BASE}/pool`, { method: 'POST', body: fd });
+    if (!r.ok) {
+      const d = await r.json().catch(() => ({}));
+      throw new Error(d.detail || `HTTP ${r.status}`);
+    }
+    const payload = await r.json();
+    activePoolId = payload.pool_id;
+    await Promise.allSettled([
+      loadLoans(),
+      refreshPoolProgress(),
+      refreshScorecard(),
+    ]);
+  } catch (err) {
+    alert(`Tape upload failed: ${err.message}`);
+  }
+}
+
+// ---------- Panel 3: Analyst Chat ----------
+
+const chatMessages = document.getElementById('chatMessages');
+const chatInput    = document.getElementById('chatInput');
+const chatSendBtn  = document.getElementById('chatSendBtn');
+const chatClearBtn = document.getElementById('chatClearBtn');
+const chatBanner   = document.getElementById('chatBanner');
+
+/**
+ * Decide whether the chat is usable for the currently-selected loan.
+ * We use the document manifest as the proxy: an empty manifest means
+ * nothing's been indexed, so the chat would 422 on every question.
+ */
+async function refreshChatPanelState() {
+  // Reset visible state on every loan switch.
+  chatMessages.innerHTML = `<div class="chat-empty">${
+    currentLoanId
+      ? 'Ask a question about ' + escapeHtml(currentLoanId) + '.'
+      : 'Pick a loan above to start chatting.'
+  }</div>`;
+
+  if (!currentLoanId) {
+    chatBanner.hidden = true;
+    chatInput.disabled = true;
+    chatSendBtn.disabled = true;
+    chatClearBtn.disabled = true;
+    return;
+  }
+  try {
+    const r = await fetch(`${API_BASE}/loan/${encodeURIComponent(currentLoanId)}/documents`);
+    const j = r.ok ? await r.json() : { documents: [] };
+    const hasDocs = (j.documents || []).some(d =>
+      ['indexed', 'processed'].includes(String(d.status || '').toLowerCase()) && (d.chunk_count || 0) > 0
+    );
+    if (!hasDocs) {
+      chatBanner.hidden = false;
+      chatBanner.textContent = 'Index documents first to enable chat — use the "Add Document" button above.';
+      chatInput.disabled = true;
+      chatSendBtn.disabled = true;
+      chatClearBtn.disabled = true;
+    } else {
+      chatBanner.hidden = true;
+      chatInput.disabled = false;
+      chatSendBtn.disabled = false;
+      chatClearBtn.disabled = false;
+    }
+  } catch (_) {
+    chatBanner.hidden = false;
+    chatBanner.textContent = 'Could not check document index — chat may not work until documents are indexed.';
+    chatInput.disabled = true;
+    chatSendBtn.disabled = true;
+  }
+}
+
+function appendChatMessage(role, payload) {
+  // First user/system message clears the placeholder.
+  const empty = chatMessages.querySelector('.chat-empty');
+  if (empty) empty.remove();
+
+  const wrap = document.createElement('div');
+  wrap.className = `chat-msg ${role}`;
+
+  if (role === 'user') {
+    wrap.innerHTML = `<div class="chat-bubble">${escapeHtml(payload)}</div>`;
+  } else {
+    const conf = (payload.confidence || 'not_found').toLowerCase();
+    const cits = (payload.citations || []).map(c => `
+      <div class="citation">
+        <span class="citation-meta">📄 ${escapeHtml(c.source_file || '—')} · Page ${c.page_number ?? '—'} · ${escapeHtml(c.entity_type || '—')}</span>
+        <p class="citation-excerpt">${escapeHtml(c.excerpt || '')}</p>
+      </div>
+    `).join('');
+    wrap.innerHTML = `
+      <div class="chat-bubble">${escapeHtml(payload.answer || '')}</div>
+      <div class="chat-confidence">
+        <span class="confidence-dot ${escapeAttr(conf)}"></span>
+        confidence: ${escapeHtml(conf)}
+      </div>
+      ${cits ? `<div class="citations">${cits}</div>` : ''}
+    `;
+  }
+  chatMessages.appendChild(wrap);
+  // Preserve scroll position for read-back of older messages: only
+  // auto-scroll if we're already near the bottom OR this is a user
+  // message (sending always scrolls).
+  const nearBottom = chatMessages.scrollHeight - chatMessages.scrollTop - chatMessages.clientHeight < 80;
+  if (role === 'user' || nearBottom) {
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+}
+
+async function sendChatQuestion() {
+  const q = chatInput.value.trim();
+  if (!q || !currentLoanId) return;
+  chatInput.value = '';
+  chatInput.disabled = true;
+  chatSendBtn.disabled = true;
+  const sendLabel = chatSendBtn.textContent;
+  chatSendBtn.innerHTML = '<div class="spinner"></div>';
+
+  appendChatMessage('user', q);
+
+  try {
+    const r = await fetch(`${API_BASE}/loan/${encodeURIComponent(currentLoanId)}/query`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: q, clear_history: false }),
+    });
+    if (r.status === 422) {
+      chatBanner.hidden = false;
+      chatBanner.textContent = 'Index documents first to enable chat.';
+      appendChatMessage('system', { answer: 'No documents indexed for this loan yet.',
+                                    confidence: 'not_found', citations: [] });
+      return;
+    }
+    if (!r.ok) {
+      const d = await r.json().catch(() => ({}));
+      throw new Error(d.detail || `HTTP ${r.status}`);
+    }
+    const result = await r.json();
+    appendChatMessage('system', result);
+  } catch (err) {
+    appendChatMessage('system', {
+      answer: `Query failed: ${err.message}`,
+      confidence: 'not_found', citations: [],
+    });
+  } finally {
+    chatInput.disabled = false;
+    chatSendBtn.disabled = false;
+    chatSendBtn.textContent = sendLabel;
+    chatInput.focus();
+  }
+}
+
+chatSendBtn.addEventListener('click', sendChatQuestion);
+chatInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendChatQuestion();
+  }
+});
+
+chatClearBtn.addEventListener('click', async () => {
+  if (!currentLoanId) return;
+  if (!confirm('Clear chat history for this loan?')) return;
+  chatClearBtn.disabled = true;
+  try {
+    // The clear flag on /query both wipes the server-side history AND
+    // re-asks the model. We don't actually want an answer here, so we
+    // send a no-op question and ignore the response.
+    await fetch(`${API_BASE}/loan/${encodeURIComponent(currentLoanId)}/query`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: '(history cleared)', clear_history: true }),
+    });
+  } catch (_) { /* swallow — UI clears regardless */ }
+  chatMessages.innerHTML = `<div class="chat-empty">Ask a question about ${escapeHtml(currentLoanId)}.</div>`;
+  chatClearBtn.disabled = false;
+});
+
+// ---------- Panel 4: Pool Progress ----------
+
+const poolCard = document.getElementById('poolCard');
+const poolBody = document.getElementById('poolBody');
+
+async function checkActivePool() {
+  // No GET /active-pool endpoint exists; fall back to "the first known pool".
+  // This is acceptable because Step 7's /pool endpoint sets the active pool
+  // to whatever was last created — and a single dashboard session usually
+  // has one pool in flight at a time.
+  try {
+    const r = await fetch(`${API_BASE}/pools`);
+    if (!r.ok) return;
+    const j = await r.json();
+    const pools = j.pools || [];
+    if (pools.length) {
+      activePoolId = pools[pools.length - 1];  // most recent (sorted asc)
+      refreshPoolProgress();
+    } else {
+      activePoolId = null;
+      poolCard.hidden = true;
+    }
+  } catch (_) { /* ignore */ }
+}
+
+async function refreshPoolProgress() {
+  if (!activePoolId) { poolCard.hidden = true; return; }
+  poolCard.hidden = false;
+  poolBody.innerHTML = `<div class="skeleton" style="width:60%"></div>
+                        <div class="skeleton" style="width:90%"></div>`;
+  try {
+    const r = await fetch(`${API_BASE}/pool/${encodeURIComponent(activePoolId)}/progress`);
+    if (!r.ok) {
+      // 404 means the pool got deleted between fetches; hide the panel.
+      if (r.status === 404) { activePoolId = null; poolCard.hidden = true; return; }
+      throw new Error(`HTTP ${r.status}`);
+    }
+    const p = await r.json();
+    renderPoolProgress(p);
+  } catch (err) {
+    poolBody.innerHTML = `<div class="panel-error">Could not load pool: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function renderPoolProgress(p) {
+  const total = p.loan_count || 0;
+  const done = (p.complete || 0) + (p.flagged || 0);
+  const pct = total ? (done / total) * 100 : 0;
+
+  const loanRows = (p.loans || []).map(L => {
+    const st = String(L.status || '').toLowerCase();
+    return `
+      <div class="pool-loan-row" data-loan-id="${escapeAttr(L.loan_id)}">
+        <span class="pool-loan-id">${escapeHtml(L.loan_id)}</span>
+        <span class="pool-pill ${escapeAttr(st)}">${escapeHtml(st.replace(/_/g, ' '))}</span>
+      </div>
+    `;
+  }).join('');
+
+  poolBody.innerHTML = `
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px">
+      <strong>${escapeHtml(p.pool_id || '—')}</strong>
+      <span style="font-size:12px;color:var(--muted)">${done}/${total} done · ${p.completion_pct ?? 0}%</span>
+    </div>
+    <div class="pool-bar"><div class="pool-bar-fill" style="width:${pct.toFixed(1)}%"></div></div>
+    <div class="pool-status-row">
+      <span class="pool-pill awaiting_docs">awaiting ${p.awaiting_docs ?? 0}</span>
+      <span class="pool-pill processing">processing ${p.processing ?? 0}</span>
+      <span class="pool-pill complete">complete ${p.complete ?? 0}</span>
+      <span class="pool-pill flagged">flagged ${p.flagged ?? 0}</span>
+      <span class="pool-pill error">error ${p.error ?? 0}</span>
+    </div>
+    <div class="pool-loans">${loanRows}</div>
+  `;
+
+  // Click any loan in the pool list to load it into the main scorecard.
+  poolBody.querySelectorAll('.pool-loan-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const lid = row.getAttribute('data-loan-id');
+      if (lid) selectLoan(lid);
+    });
+  });
+}
+
+// ---------- Unmatched documents banner ----------
+
+const unmatchedBanner = document.getElementById('unmatchedBanner');
+const unmatchedCountEl = document.getElementById('unmatchedCount');
+const unmatchedBody = document.getElementById('unmatchedBody');
+const unmatchedToggle = document.getElementById('unmatchedToggle');
+
+let unmatchedFiles = [];
+
+async function checkUnmatched() {
+  try {
+    const r = await fetch(`${API_BASE}/inbox/unmatched`);
+    if (!r.ok) return;
+    const j = await r.json();
+    unmatchedFiles = j.unmatched || [];
+    if (unmatchedFiles.length) {
+      unmatchedBanner.hidden = false;
+      unmatchedCountEl.textContent = String(unmatchedFiles.length);
+      if (!unmatchedBody.hidden) renderUnmatchedBody();
+    } else {
+      unmatchedBanner.hidden = true;
+      unmatchedBody.hidden = true;
+      unmatchedToggle.textContent = 'Show ▾';
+    }
+  } catch (_) { /* swallow */ }
+}
+
+unmatchedToggle.addEventListener('click', () => {
+  if (unmatchedBody.hidden) {
+    renderUnmatchedBody();
+    unmatchedBody.hidden = false;
+    unmatchedToggle.textContent = 'Hide ▴';
+  } else {
+    unmatchedBody.hidden = true;
+    unmatchedToggle.textContent = 'Show ▾';
+  }
+});
+
+function renderUnmatchedBody() {
+  if (!unmatchedFiles.length) {
+    unmatchedBody.innerHTML = '';
+    return;
+  }
+  // Build the loan_id options from /loans so the operator can assign
+  // any known loan without typing.
+  const loanIds = Array.from(loanSelectorEl.options)
+    .map(o => o.value).filter(Boolean);
+
+  const rows = unmatchedFiles.map(f => {
+    const sidecar = f.sidecar || {};
+    const candidates = (sidecar.candidates || []).map(c => c.loan_id);
+    // Suggest the highest-scoring candidate by default if present.
+    const defaultLid = candidates[0] || '';
+    const opts = loanIds.map(lid =>
+      `<option value="${escapeAttr(lid)}"${lid === defaultLid ? ' selected' : ''}>${escapeHtml(lid)}</option>`
+    ).join('');
+    const reason = sidecar.reason ? ` · ${escapeHtml(sidecar.reason)}` : '';
+    return `
+      <div class="warn-row" data-filename="${escapeAttr(f.filename)}">
+        <div>
+          <strong>${escapeHtml(f.filename)}</strong>
+          <div style="font-size:11px;color:var(--amber-dark);opacity:0.8">
+            ${candidates.length ? 'candidates: ' + candidates.map(escapeHtml).join(', ') : 'no candidates'}${reason}
+          </div>
+        </div>
+        <select>
+          <option value="">— choose loan —</option>
+          ${opts}
+        </select>
+        <button class="assign-btn">Assign</button>
+      </div>
+    `;
+  }).join('');
+  unmatchedBody.innerHTML = rows;
+
+  unmatchedBody.querySelectorAll('.warn-row').forEach(row => {
+    const btn = row.querySelector('.assign-btn');
+    const sel = row.querySelector('select');
+    const filename = row.getAttribute('data-filename');
+    btn.addEventListener('click', async () => {
+      const lid = sel.value;
+      if (!lid) { alert('Pick a loan first.'); return; }
+      btn.disabled = true;
+      btn.textContent = 'Assigning…';
+      try {
+        const r = await fetch(`${API_BASE}/inbox/assign`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename, loan_id: lid }),
+        });
+        if (!r.ok) {
+          const d = await r.json().catch(() => ({}));
+          throw new Error(d.detail || `HTTP ${r.status}`);
+        }
+        await checkUnmatched();
+        if (currentLoanId === lid) await refreshDocuments();
+      } catch (err) {
+        alert(`Assign failed: ${err.message}`);
+        btn.disabled = false;
+        btn.textContent = 'Assign';
+      }
+    });
+  });
+}
+
+// ---------- formatters / helpers ----------
+
+function fmtCurrency(n) {
+  if (n == null || n === '') return '—';
+  const num = Number(n);
+  if (!isFinite(num)) return '—';
+  return '$' + num.toLocaleString('en-US', { maximumFractionDigits: 0 });
+}
+function fmtPercent(n) {
+  if (n == null || n === '') return '—';
+  const num = Number(n);
+  if (!isFinite(num)) return '—';
+  return num.toFixed(2) + '%';
+}
+function fmtRate(n) {
+  if (n == null || n === '') return '—';
+  const num = Number(n);
+  if (!isFinite(num)) return '—';
+  return num.toFixed(3) + '%';
+}
+function formatBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
+  return (b / (1024 * 1024)).toFixed(1) + ' MB';
+}
+function formatTimestamp(iso) {
+  if (!iso) return '—';
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString();
+  } catch (_) { return iso; }
+}
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+function escapeAttr(s) {
+  return escapeHtml(s).replace(/\s/g, '_');
+}
+function showPanelError(el, msg) {
+  const e = document.createElement('div');
+  e.className = 'panel-error';
+  e.textContent = msg;
+  el.prepend(e);
+  setTimeout(() => e.remove(), 8000);
+}
+
+// ---------- bootstrapping ----------
+
+(async function init() {
+  await loadLoans();
+  // If exactly one loan exists, auto-select it for convenience.
+  const opts = Array.from(loanSelectorEl.options).map(o => o.value).filter(Boolean);
+  if (opts.length === 1) await selectLoan(opts[0]);
+  checkActivePool();
+  checkUnmatched();
+  // Poll the unmatched inbox every 15s — keeps the warning banner fresh
+  // when the folder watcher quarantines a new file.
+  setInterval(checkUnmatched, 15000);
+  // Re-check the active pool / loan list a bit slower; covers the case
+  // where another browser tab or CLI run creates a new pool.
+  setInterval(() => { loadLoans(); checkActivePool(); }, 30000);
+})();
+</script>
+
+</body>
+</html>

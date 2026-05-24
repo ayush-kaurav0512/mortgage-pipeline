@@ -1,0 +1,68 @@
+{
+  "version": "1.0",
+  "last_updated": "2026-05-23",
+  "updated_by": "Credit Risk Team",
+  "description": "Tier 2 configurable thresholds. Edit values here — no code change needed. Restart the API after editing.",
+  "rules": {
+    "RULE-004": {
+      "name": "DTI in caution zone",
+      "enabled": true,
+      "severity": "MEDIUM",
+      "threshold_low": 43,
+      "threshold_high": 50
+    },
+    "RULE-005": {
+      "name": "LTV above threshold",
+      "enabled": true,
+      "severity": "MEDIUM",
+      "threshold": 90
+    },
+    "RULE-006": {
+      "name": "Low confidence fields",
+      "enabled": true,
+      "severity": "MEDIUM",
+      "confidence_threshold": 0.75
+    },
+    "RULE-007": {
+      "name": "Credit score below floor",
+      "enabled": true,
+      "severity": "MEDIUM",
+      "threshold": 720
+    },
+    "RULE-008": {
+      "name": "High closing costs",
+      "enabled": true,
+      "severity": "LOW",
+      "threshold_pct": 4.0
+    },
+    "RULE-009": {
+      "name": "Payment to income ratio",
+      "enabled": true,
+      "severity": "LOW",
+      "threshold_pct": 35.0
+    },
+    "RULE-010": {
+      "name": "Minor income variance",
+      "enabled": true,
+      "severity": "LOW",
+      "threshold_low": 5,
+      "threshold_high": 15
+    },
+    "RULE-012": {
+      "name": "Loan modification history",
+      "enabled": true,
+      "severity": "MEDIUM"
+    },
+    "RULE-014": {
+      "name": "Escrow shortage",
+      "enabled": true,
+      "severity": "LOW",
+      "threshold": 0
+    },
+    "RULE-015": {
+      "name": "Borrower identity inconsistency",
+      "enabled": true,
+      "severity": "MEDIUM"
+    }
+  }
+}

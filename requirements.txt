@@ -1,0 +1,19 @@
+fastapi
+uvicorn
+python-multipart
+pdfplumber
+groq
+python-dotenv
+reportlab
+pytest
+
+# Phase 2A
+chromadb>=0.4.0
+sentence-transformers>=2.2.0
+pytesseract>=0.3.10
+Pillow>=10.0.0
+pandas>=2.0.0
+openpyxl>=3.1.0
+watchdog>=3.0.0
+langchain-text-splitters>=0.0.1
+rapidfuzz>=3.0.0
