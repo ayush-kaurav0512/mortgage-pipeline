@@ -54,10 +54,18 @@ def _default_embedder():
 
 
 def _to_list(embeddings):
-    """Coerce a numpy array (or list) of embeddings to ChromaDB's list-of-lists shape."""
-    if hasattr(embeddings, "tolist"):
-        return embeddings.tolist()
-    return [list(e) for e in embeddings]
+    """Coerce embeddings to a nested list of NATIVE Python floats.
+
+    Critical detail: ChromaDB's `normalize_embeddings` rejects lists
+    of numpy scalars (np.float32 is not a subclass of Python `float`).
+    A naive `list(numpy_array)` yields a list of np.float32 objects
+    which trip its isinstance check and raise ValueError. Going through
+    `np.asarray(..., dtype=float).tolist()` forces float64 end-to-end
+    and `.tolist()` then produces a true nested list of Python floats.
+    """
+    import numpy as np
+    arr = np.asarray(embeddings, dtype=float)
+    return arr.tolist()
 
 
 class VectorStore:
@@ -84,6 +92,9 @@ class VectorStore:
             name=self.collection_name,
             metadata={"hnsw:space": "cosine"},
         )
+        # Debug visibility (Step-11 diagnostic fixes).
+        print(f"[VECTORSTORE] Initialized collection '{self.collection_name}' at {str(vectors_dir)}")
+        print(f"[VECTORSTORE] Existing chunks in collection: {self.chunk_count()}")
 
     # ---------- ingestion ----------
 
@@ -102,6 +113,10 @@ class VectorStore:
         """
         if not chunks:
             return 0
+
+        # Debug visibility (Step-11 diagnostic fixes).
+        print(f"[VECTORSTORE] Adding {len(chunks)} chunks for doc_id={doc_id} to collection={self.collection_name}")
+        print(f"[VECTORSTORE] Collection chunk count before: {self.chunk_count()}")
 
         candidate_ids = [f"{doc_id}#{c['metadata']['chunk_index']}" for c in chunks]
 
@@ -125,6 +140,7 @@ class VectorStore:
             documents=new_texts,
             metadatas=new_metas,
         )
+        print(f"[VECTORSTORE] Collection chunk count after: {self.chunk_count()}")
         return len(new_ids)
 
     @staticmethod

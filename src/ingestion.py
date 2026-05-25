@@ -22,6 +22,7 @@ was processed, what failed, and what's still pending.
 import json
 import logging
 import sys
+import traceback
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -99,6 +100,29 @@ _PAGE_SEPARATOR = "\n--- PAGE BREAK ---\n"
 # for scan-only PDFs. Below this character count we treat the result as
 # "essentially nothing" and try OCR.
 _OCR_FALLBACK_MIN_CHARS = 100
+
+# Filenames that look like macOS / Windows metadata sidecars rather than
+# real documents. ._foo.pdf is the classic AppleDouble pollution that
+# crashes pdfplumber on every drag-and-drop from Finder.
+SKIP_PREFIXES = ("._", ".DS_Store", ".Thumbs")
+
+
+def is_hidden_file(path: Path) -> bool:
+    """True for macOS metadata sidecars and small dotfiles.
+
+    `._foo.pdf` is always hidden. Other dotfiles (`.foo`) are treated as
+    hidden only when small (< 4 KB) so we don't accidentally skip a
+    legitimately-named PDF that happens to start with a dot.
+    """
+    name = path.name
+    if name.startswith("._"):
+        return True
+    if not name.startswith("."):
+        return False
+    try:
+        return path.stat().st_size < 4096
+    except OSError:
+        return True
 
 
 # ---------- state ----------
@@ -422,6 +446,15 @@ def ingest_document(pdf_path: Path,
     """
     state = DocumentState(filename=pdf_path.name, processed_at=_now_iso())
 
+    # ---- Early guard: skip macOS / Windows metadata sidecars. ----
+    # ._foo.pdf etc. crash pdfplumber and never carry useful content;
+    # treat them as "skipped" so they show up in the manifest with a
+    # clear reason but don't contaminate the failed-count.
+    if is_hidden_file(pdf_path):
+        state.status = "skipped"
+        state.error = "mac_metadata_file"
+        return state
+
     try:
         ensure_loan_dirs(loan_id)
         vs = vector_store if vector_store is not None else VectorStore(loan_id)
@@ -437,7 +470,8 @@ def ingest_document(pdf_path: Path,
             removed = vs.delete_document(doc_id)
             logger.info("ingest_document: removed %d existing chunks for %s.", removed, doc_id)
 
-        # 1. extract
+        # 1. extract (ALWAYS — even if structured parse later fails, we
+        #    still want this text in the vector store for RAG).
         state.status = "extracting"
         text, method, page_map = _extract_with_page_map(pdf_path)
         state.method = method
@@ -453,28 +487,53 @@ def ingest_document(pdf_path: Path,
         state.doc_type = doc_type
         state.entity_types = list(ENTITY_TYPE_MAP.get(doc_type, ["general"]))
 
-        # 3. (structured types) run the field parser alongside
+        # 3. (structured types) run the field parser ALONGSIDE chunking.
+        # A parser failure must NOT abort the rest of the pipeline —
+        # the vector store still needs the chunks for RAG / chat.
+        structured_parse_succeeded = False
         if doc_type in STRUCTURED_TYPES:
+            print(f"[INGESTION] Calling structured parser for {pdf_path.name}")
+            print(f"[INGESTION] File exists: {pdf_path.exists()}, size: {pdf_path.stat().st_size}")
+            print(f"[INGESTION] Groq client type: {type(groq_client)}")
             try:
                 from src.parser import parse_pdf, save_parsed
                 result = parse_pdf(pdf_path, loan_id, groq_client)
+                print(f"[INGESTION] Parser result keys: "
+                      f"{list(result.keys()) if isinstance(result, dict) else type(result)}")
                 if result is not None:
                     save_parsed(result, loan_parsed_dir(loan_id))
-                state.method = "structured_parser"
+                    structured_parse_succeeded = True
             except Exception as exc:
-                # Structured parse failure shouldn't abort ingest — we
-                # still want the chunks in the vector store for RAG.
-                logger.warning("structured parse for %s failed: %s", pdf_path.name, exc)
+                print(f"[INGESTION] Parser FAILED for {pdf_path.name}: {exc}")
+                traceback.print_exc()
+                # Fall through — we still chunk + index the text below.
 
-        # 4. chunk + index
+        # 4. ALWAYS chunk + index, regardless of doc_type or whether
+        #    the structured parser succeeded. This is the key
+        #    invariant: the vector store cannot be empty just because
+        #    an upstream stage had an API issue.
         chunks = chunk_document(text, doc_type, pdf_path.name, page_map)
         added = vs.add_document(doc_id, chunks)
         state.chunk_count = added
-        state.status = "processed" if doc_type in STRUCTURED_TYPES else "indexed"
+
+        # Final status: "processed" only when BOTH the structured
+        # parser ran AND chunks landed. Otherwise the file was just
+        # indexed (RAG works, structured fields missing).
+        if doc_type in STRUCTURED_TYPES and structured_parse_succeeded:
+            state.method = "structured_parser"
+            state.status = "processed"
+        else:
+            state.status = "indexed"
 
     except Exception as exc:
+        # Catch absolutely everything so a single bad file can't poison
+        # the rest of the loan package. Print the full traceback so the
+        # operator can see exactly where the failure happened — relying
+        # on `logger.exception` alone is too quiet for debugging.
         state.status = "failed"
         state.error = f"{type(exc).__name__}: {exc}"
+        print(f"[INGESTION] ingest_document failed for {pdf_path.name}:")
+        traceback.print_exc()
         logger.exception("ingest_document failed for %s", pdf_path.name)
 
     state.processed_at = _now_iso()
@@ -492,7 +551,12 @@ def ingest_loan_package(loan_id: str,
     what's happening in real time.
     """
     ensure_loan_dirs(loan_id)
-    pdfs = sorted(loan_input_dir(loan_id).glob("*.pdf"))
+    # Filter macOS / Windows metadata sidecars at the directory listing
+    # stage so they don't even show up in the progress log. is_hidden_file
+    # is still called inside ingest_document as a belt-and-braces guard
+    # for callers that pass paths in directly.
+    pdfs = [p for p in sorted(loan_input_dir(loan_id).glob("*.pdf"))
+            if not is_hidden_file(p)]
     vs = vector_store if vector_store is not None else VectorStore(loan_id)
 
     print(f"Ingesting {len(pdfs)} PDF(s) for {loan_id}")
