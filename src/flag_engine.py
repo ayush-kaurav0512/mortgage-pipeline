@@ -130,6 +130,57 @@ def load_rules_config() -> dict:
 RULES_CONFIG = load_rules_config()
 
 
+# ---------- loan profile loading (per-loan-type required-doc lists) ----------
+
+LOAN_PROFILES_PATH = PROJECT_ROOT / "loan_profiles.json"
+
+# Hardcoded fallback used when loan_profiles.json is missing or malformed.
+# Mirrors the file's `default` entry so RULE-003 keeps working even if the
+# operator deletes the config.
+_LOAN_PROFILES_FALLBACK = {
+    "default": {
+        "required": ["loan_application", "pay_stub", "closing_disclosure"],
+        "conditional": {},
+        "optional": [],
+    }
+}
+
+
+def load_loan_profiles() -> dict:
+    """Load loan_profiles.json from the project root.
+
+    Each top-level key is a loan_type (e.g. "conventional_purchase") and
+    maps to a dict with `required`, `conditional`, and `optional` lists
+    of document types. Returns a fallback containing only the `default`
+    profile if the file is missing or unparseable — RULE-003 still
+    works in that case, just with the bare-bones 3-doc requirement.
+    """
+    if not LOAN_PROFILES_PATH.exists():
+        logger.warning(
+            "loan_profiles.json not found at %s — using fallback profile.",
+            LOAN_PROFILES_PATH,
+        )
+        return dict(_LOAN_PROFILES_FALLBACK)
+    try:
+        with open(LOAN_PROFILES_PATH) as fh:
+            data = json.load(fh)
+        if not isinstance(data, dict) or not data:
+            logger.warning("loan_profiles.json was not a non-empty object; using fallback.")
+            return dict(_LOAN_PROFILES_FALLBACK)
+        # Ensure a 'default' entry always exists so callers can fall through.
+        if "default" not in data:
+            data["default"] = _LOAN_PROFILES_FALLBACK["default"]
+        logger.info("Loaded loan_profiles.json with %d profile(s).", len(data))
+        return data
+    except (OSError, json.JSONDecodeError) as exc:
+        logger.warning("Failed to parse loan_profiles.json (%s); using fallback.", exc)
+        return dict(_LOAN_PROFILES_FALLBACK)
+
+
+# Loaded ONCE at import. Restart to pick up edits.
+LOAN_PROFILES = load_loan_profiles()
+
+
 def get_rule_config(rule_id: str) -> dict:
     """Return the per-rule config block for rule_id, or {} if absent.
 
@@ -180,9 +231,58 @@ def _check_002_dti_over_limit(r: dict) -> Optional[dict]:
 
 
 def _check_003_missing_documents(r: dict) -> Optional[dict]:
-    """RULE-003: one or more expected documents are missing."""
-    missing = _get(r, "document_completeness", "missing") or []
-    return {"missing_list": ", ".join(missing)} if missing else None
+    """RULE-003: required documents are missing for this loan type's profile.
+
+    The expected-doc list is now profile-driven (loan_profiles.json),
+    not the normalizer's hardcoded EXPECTED_DOC_TYPES. We look at the
+    loan's `loan_type`, pick the matching profile (falling back to
+    `default`), and compare its required + conditionally-required sets
+    against the `document_completeness.received` list.
+
+    Conditional rules supported today:
+        "required if flood_zone is AE or VE"  -> property.flood_zone in {AE, VE, A, V}
+        "required if ltv > 80"                -> loan.ltv > 80
+
+    Returns format-template placeholders so the existing evaluate()
+    machinery (rule.description.format(**ctx)) can produce the
+    explanation string without any special-casing.
+    """
+    loan_type = (r.get("loan") or {}).get("loan_type") or "default"
+    profile = LOAN_PROFILES.get(loan_type) or LOAN_PROFILES.get("default") or {}
+
+    received = set((r.get("document_completeness") or {}).get("received") or [])
+
+    required = set(profile.get("required") or [])
+    missing_required = required - received
+
+    missing_conditional = []
+    for doc_type, condition in (profile.get("conditional") or {}).items():
+        if doc_type in received:
+            continue
+        should_require = False
+        if "flood_zone is AE or VE" in condition:
+            flood_zone = (r.get("property") or {}).get("flood_zone") or "X"
+            if str(flood_zone).upper() in ("AE", "VE", "A", "V"):
+                should_require = True
+        if "ltv > 80" in condition:
+            ltv = (r.get("loan") or {}).get("ltv")
+            try:
+                if ltv is not None and float(ltv) > 80:
+                    should_require = True
+            except (TypeError, ValueError):
+                pass
+        if should_require:
+            missing_conditional.append(doc_type)
+
+    all_missing = missing_required | set(missing_conditional)
+    if not all_missing:
+        return None
+
+    return {
+        "loan_type": loan_type,
+        "missing_list": ", ".join(sorted(all_missing)),
+        "received_list": ", ".join(sorted(received)) or "(none)",
+    }
 
 
 def _check_011_delinquent(r: dict) -> Optional[dict]:
@@ -329,7 +429,8 @@ RULES = [
          "DTI of {dti}% exceeds the 50% hard agency limit."),
     Rule("RULE-003", "Missing required documents", "HIGH",
          _check_003_missing_documents,
-         "Missing documents: {missing_list}"),
+         "Missing required documents for {loan_type} loan: {missing_list}. "
+         "Received: {received_list}."),
     Rule("RULE-011", "Loan delinquency", "HIGH",
          _check_011_delinquent,
          "Loan is {days} days delinquent per servicing tape. Immediate review required."),

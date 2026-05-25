@@ -65,6 +65,7 @@ COLUMN_ALIASES = {
     "escrow_balance": ["escrow_balance", "escrow", "escrow_amount", "escrowed_amount"],
     "servicer_name": ["servicer_name", "servicer", "subservicer", "servicing_company"],
     "payment_history": ["payment_history", "pay_history", "payment_string", "pay_string", "history_string"],
+    "loan_type": ["loan_type", "product_type", "loan_purpose", "product", "program"],
 }
 
 # A tape without these is structurally unusable.
@@ -371,6 +372,9 @@ def build_servicing_record(row: pd.Series, loan_id: str) -> dict:
         "borrower_name": _safe_str(row.get("borrower_name")),
         "co_borrower_name": _safe_str(row.get("co_borrower_name")),
         "property_address": _safe_str(row.get("property_address")),
+        # Picked up by normalizer._load_servicing_summary and read by
+        # RULE-003 to look up the loan's required-doc profile.
+        "loan_type": _safe_str(row.get("loan_type")) or "conventional_purchase",
     }
 
 

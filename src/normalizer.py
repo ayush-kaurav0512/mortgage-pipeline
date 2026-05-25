@@ -175,6 +175,7 @@ def _load_servicing_summary(loan_id: str) -> Optional[dict]:
         "modification_flag": data.get("modification_flag"),
         "escrow_balance": data.get("escrow_balance"),
         "payment_history_parsed": data.get("payment_history_parsed"),
+        "loan_type": data.get("loan_type"),
     }
 
 
@@ -232,6 +233,11 @@ def build_loan_record(loan_id: str, docs: dict) -> dict:
     purchase_price = take("property.purchase_price", "loan_application", "purchase_price")
 
     closing_costs = take("closing.closing_costs", "closing_disclosure", "closing_costs")
+
+    # Load servicing once so both `loan.loan_type` and the top-level
+    # `servicing` key share the same on-disk read.
+    servicing_summary = _load_servicing_summary(loan_id)
+    loan_type = (servicing_summary or {}).get("loan_type") or "conventional_purchase"
 
     # ---- borrowers list (Phase 2A Step 9) ----
     # Always one primary entry; optional co-borrower entry when the
@@ -302,6 +308,11 @@ def build_loan_record(loan_id: str, docs: dict) -> dict:
             "monthly_payment": monthly_payment,
             "ltv": ltv,
             "dti": dti,
+            # Drives RULE-003's profile lookup in loan_profiles.json.
+            # Sourced from the servicing tape when available, otherwise
+            # defaulted to conventional_purchase so the rule has
+            # something to evaluate against.
+            "loan_type": loan_type,
         },
         "property": {
             "address": address,
@@ -310,7 +321,7 @@ def build_loan_record(loan_id: str, docs: dict) -> dict:
         "closing": {
             "closing_costs": closing_costs,
         },
-        "servicing": _load_servicing_summary(loan_id),
+        "servicing": servicing_summary,
         # Populated by future loan_identity matching when a borrower
         # signal conflicts across documents; read by RULE-015. Initialized
         # to a benign "no inconsistency" so the rule never fires
