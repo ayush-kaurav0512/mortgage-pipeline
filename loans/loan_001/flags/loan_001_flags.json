@@ -1,6 +1,6 @@
 {
   "loan_id": "loan_001",
-  "evaluated_at": "2026-05-24T21:31:56.505267+00:00",
+  "evaluated_at": "2026-05-25T14:44:55.521086+00:00",
   "overall_status": "HOLD",
   "flags": [
     {
@@ -8,6 +8,12 @@
       "name": "Income variance > 15%",
       "severity": "HIGH",
       "explanation": "Stated income on 1003 differs from pay stub by 19.57%. Threshold is 15%."
+    },
+    {
+      "id": "RULE-003",
+      "name": "Missing required documents",
+      "severity": "HIGH",
+      "explanation": "Missing required documents for conventional_purchase loan: appraisal_report, insurance_declaration, title_commitment. Received: closing_disclosure, loan_application, pay_stub."
     },
     {
       "id": "RULE-004",
